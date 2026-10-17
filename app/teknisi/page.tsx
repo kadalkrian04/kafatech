@@ -34,6 +34,7 @@ export default function TechnicianPage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawing = useRef(false);
   const hasSignature = useRef(false);
+  const detailsRef = useRef<HTMLElement>(null); // Referensi untuk scroll otomatis ke detail
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -176,7 +177,7 @@ export default function TechnicianPage() {
     const rect = c.getBoundingClientRect();
     const ctx = c.getContext("2d");
     if (!ctx) return;
-    ctx.strokeStyle = "#1e40af"; // Deep blue
+    ctx.strokeStyle = "#1e40af"; 
     ctx.lineWidth = 2.5;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -245,17 +246,14 @@ export default function TechnicianPage() {
         </a>
         
         <div className="flex items-center gap-3">
-          {/* Tombol Refresh */}
           <button onClick={() => void load()} className="p-2 text-slate-400 hover:text-blue-600 border border-slate-200 rounded-full bg-slate-50 hover:bg-blue-50 transition-colors" title="Muat ulang data">
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           </button>
           
-          {/* Avatar (disembunyikan di HP biar hemat tempat) */}
           <div className="hidden md:flex w-9 h-9 rounded-full bg-blue-100 text-blue-700 items-center justify-center font-bold text-sm border border-blue-200">
             {user?.fullName?.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase() || "AP"}
           </div>
 
-          {/* Tombol Logout */}
           <button onClick={() => void logout()} disabled={busy} className="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 ml-1">
             <LogOut size={14} /> <span className="hidden sm:inline">Logout</span>
           </button>
@@ -264,7 +262,7 @@ export default function TechnicianPage() {
 
       <main className="max-w-6xl mx-auto px-4 md:px-6 mt-6">
         
-        {/* Top Greeting (Tombol kembali ke admin panel sudah dihapus) */}
+        {/* Top Greeting */}
         <div className="mb-8">
           <div className="flex items-center gap-2 text-emerald-500 text-xs font-extrabold tracking-widest uppercase mb-1">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -363,7 +361,13 @@ export default function TechnicianPage() {
               {visible.map(w => (
                 <button 
                   key={w.id} 
-                  onClick={() => setSelected(String(w.id))} 
+                  onClick={() => {
+                    setSelected(String(w.id));
+                    // Otomatis scroll ke detail SPK (Berguna di tampilan HP)
+                    setTimeout(() => {
+                      detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 150);
+                  }} 
                   className={`w-full text-left p-4 rounded-2xl border mb-3 transition-all ${String(w.id) === selected ? "border-blue-200 bg-blue-50/50 shadow-sm" : "border-slate-100 bg-white hover:border-slate-300 hover:bg-slate-50"}`}
                 >
                   <div className="flex justify-between items-start mb-2">
@@ -392,8 +396,8 @@ export default function TechnicianPage() {
             </div>
           </section>
 
-          {/* Right Column: Active Job Details */}
-          <section className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+          {/* Right Column: Active Job Details (dengan ref untuk scroll) */}
+          <section ref={detailsRef} className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden scroll-mt-24">
             {!active ? (
               <div className="p-12 text-center text-slate-500 flex flex-col items-center justify-center min-h-[400px]">
                 <div className="bg-slate-100 p-4 rounded-full mb-4">
@@ -478,20 +482,20 @@ export default function TechnicianPage() {
                       
                       <hr className="border-slate-100" />
 
-                      {/* Step 2: Foto */}
+                      {/* Step 2: Foto (Kini 3 Kolom) */}
                       <section>
                         <div className="flex justify-between items-start mb-4">
                           <div>
                             <div className="text-[10px] font-bold text-slate-400 tracking-wider mb-1">02 · BUKTI PEKERJAAN</div>
                             <h3 className="text-lg font-bold text-slate-800">Dokumentasi foto</h3>
-                            <p className="text-xs text-slate-500 mt-1">Upload foto sebelum dan sesudah untuk bukti kerja.</p>
+                            <p className="text-xs text-slate-500 mt-1">Upload foto dokumentasi untuk bukti pengerjaan teknis.</p>
                           </div>
                           <div className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-500 bg-white">
                             <Camera size={14} /> {currentPhotos.length} foto
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                           {/* Foto Sebelum */}
                           <label className="border-2 border-dashed border-slate-200 hover:border-blue-300 hover:bg-blue-50/30 rounded-2xl p-6 flex flex-col items-center text-center cursor-pointer transition-all">
                             <input type="file" accept="image/*" multiple capture="environment" disabled={busy} onChange={e => { void addPhotos(e.target.files, "before"); e.currentTarget.value = "" }} className="hidden" />
@@ -499,11 +503,27 @@ export default function TechnicianPage() {
                               <UploadCloud size={24} className="text-blue-600" />
                             </div>
                             <b className="text-sm text-slate-800">Foto sebelum</b>
-                            <span className="text-xs text-slate-400 mt-1">Foto kondisi awal</span>
+                            <span className="text-xs text-slate-400 mt-1">Kondisi awal</span>
                             <span className="text-blue-600 text-sm font-bold mt-4 flex items-center gap-1"><span className="text-lg leading-none">+</span> Tambah foto</span>
                             {currentPhotos.filter(p => p.photo_type === "before").length > 0 && (
                               <div className="mt-3 text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded">
                                 {currentPhotos.filter(p => p.photo_type === "before").length} Terunggah
+                              </div>
+                            )}
+                          </label>
+
+                          {/* Foto Progres (Baru Ditambahkan) */}
+                          <label className="border-2 border-dashed border-slate-200 hover:border-purple-300 hover:bg-purple-50/30 rounded-2xl p-6 flex flex-col items-center text-center cursor-pointer transition-all">
+                            <input type="file" accept="image/*" multiple capture="environment" disabled={busy} onChange={e => { void addPhotos(e.target.files, "during"); e.currentTarget.value = "" }} className="hidden" />
+                            <div className="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center mb-3">
+                              <Camera size={24} className="text-purple-500" />
+                            </div>
+                            <b className="text-sm text-slate-800">Foto progres</b>
+                            <span className="text-xs text-slate-400 mt-1">Saat dikerjakan</span>
+                            <span className="text-purple-600 text-sm font-bold mt-4 flex items-center gap-1"><span className="text-lg leading-none">+</span> Tambah foto</span>
+                            {currentPhotos.filter(p => p.photo_type === "during").length > 0 && (
+                              <div className="mt-3 text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                                {currentPhotos.filter(p => p.photo_type === "during").length} Terunggah
                               </div>
                             )}
                           </label>
@@ -515,7 +535,7 @@ export default function TechnicianPage() {
                               <ImageIcon size={24} className="text-emerald-500" />
                             </div>
                             <b className="text-sm text-slate-800">Foto sesudah</b>
-                            <span className="text-xs text-slate-400 mt-1">Foto hasil pengerjaan</span>
+                            <span className="text-xs text-slate-400 mt-1">Hasil akhir</span>
                             <span className="text-emerald-600 text-sm font-bold mt-4 flex items-center gap-1"><span className="text-lg leading-none">+</span> Tambah foto</span>
                             {currentPhotos.filter(p => p.photo_type === "after").length > 0 && (
                               <div className="mt-3 text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-1 rounded">
@@ -593,7 +613,7 @@ export default function TechnicianPage() {
                             <ShieldCheck className="text-blue-600 flex-shrink-0" size={20} />
                             <div>
                               <b className="text-sm text-slate-800 block">Checklist sebelum menyelesaikan SPK</b>
-                              <p className="text-xs text-slate-500 mt-1">Pastikan foto kondisi awal, hasil akhir, dan catatan pekerjaan sudah lengkap.</p>
+                              <p className="text-xs text-slate-500 mt-1">Pastikan foto kondisi awal, progres, hasil akhir, dan catatan pekerjaan sudah lengkap.</p>
                             </div>
                           </div>
 
