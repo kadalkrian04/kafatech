@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { 
   CalendarDays, Camera, CheckCircle2, LogOut, MapPin, RefreshCw, 
-  ShieldCheck, UploadCloud, Wrench, X, ArrowLeft, Bell, Sparkles, 
-  Image as ImageIcon, CheckCircle 
+  ShieldCheck, UploadCloud, Wrench, X, Sparkles, Image as ImageIcon, CheckCircle 
 } from "lucide-react";
 
 type Work = { id: string; spk_number: string; customer_name: string; customer_phone?: string; title: string; location: string; work_date: string; start_time: string | null; end_time: string | null; status: string; progress_percent: number; description?: string };
@@ -244,24 +243,29 @@ export default function TechnicianPage() {
             <small className="block text-[10px] text-slate-500 font-semibold tracking-[0.1em]">FIELD SERVICE</small>
           </div>
         </a>
+        
         <div className="flex items-center gap-3">
-          <button className="p-2 text-slate-400 hover:text-slate-600 border border-slate-200 rounded-full bg-slate-50 hover:bg-slate-100 transition-colors">
-            <Bell size={18} />
+          {/* Tombol Refresh */}
+          <button onClick={() => void load()} className="p-2 text-slate-400 hover:text-blue-600 border border-slate-200 rounded-full bg-slate-50 hover:bg-blue-50 transition-colors" title="Muat ulang data">
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           </button>
-          <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm border border-blue-200">
+          
+          {/* Avatar (disembunyikan di HP biar hemat tempat) */}
+          <div className="hidden md:flex w-9 h-9 rounded-full bg-blue-100 text-blue-700 items-center justify-center font-bold text-sm border border-blue-200">
             {user?.fullName?.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase() || "AP"}
           </div>
+
+          {/* Tombol Logout */}
+          <button onClick={() => void logout()} disabled={busy} className="flex items-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 ml-1">
+            <LogOut size={14} /> <span className="hidden sm:inline">Logout</span>
+          </button>
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-4 md:px-6 mt-6">
         
-        {/* Top Navigation & Greeting */}
+        {/* Top Greeting (Tombol kembali ke admin panel sudah dihapus) */}
         <div className="mb-8">
-          <a href="/admin" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 mb-6 font-medium transition-colors">
-            <ArrowLeft size={16} /> Kembali ke Admin Panel
-          </a>
-          
           <div className="flex items-center gap-2 text-emerald-500 text-xs font-extrabold tracking-widest uppercase mb-1">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
             Technician Workspace
