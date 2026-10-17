@@ -1,0 +1,8 @@
+import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import { getDb } from "@/lib/db";
+import { requireUser, audit } from "@/lib/http";
+export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
+ const {session,response}=await requireUser(["admin"]);if(response)return response;const {id}=await params;if(!/^\d+$/.test(id))return NextResponse.json({error:"ID akun tidak valid."},{status:400});
+ try{const b=await req.json();if(b.role&&!['admin','dispatcher','technician'].includes(b.role))return NextResponse.json({error:"Role tidak valid."},{status:400});if(b.password&&(typeof b.password!=="string"||b.password.length<12))return NextResponse.json({error:"Password minimal 12 karakter."},{status:400});if(id===session!.id&&b.isActive===false)return NextResponse.json({error:"Anda tidak dapat menonaktifkan akun sendiri."},{status:400});const sql=getDb();const hash=b.password?await bcrypt.hash(b.password,12):null;const rows=await sql`UPDATE app_users SET full_name=COALESCE(${typeof b.fullName==='string'?b.fullName.trim()||null:null},full_name),role=COALESCE(${b.role??null},role),is_active=COALESCE(${typeof b.isActive==='boolean'?b.isActive:null},is_active),password_hash=COALESCE(${hash},password_hash) WHERE id=${id} RETURNING id,username,full_name,role,is_active`;if(!rows.length)return NextResponse.json({error:"Akun tidak ditemukan."},{status:404});await audit(session!.id,"user.updated","app_user",id,{role:b.role,isActive:b.isActive});return NextResponse.json({user:rows[0]});}catch{return NextResponse.json({error:"Gagal memperbarui akun."},{status:400});}
+}

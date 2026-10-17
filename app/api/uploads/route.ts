@@ -1,0 +1,10 @@
+import { NextResponse } from "next/server";
+import { createHash } from "node:crypto";
+import { requireUser } from "@/lib/http";
+function signature(params:Record<string,string>, secret:string) { const joined=Object.keys(params).sort().map(k=>`${k}=${params[k]}`).join("&"); return createHash("sha1").update(joined+secret).digest("hex"); }
+export async function POST(req:Request) {
+ const {session,response}=await requireUser(["technician"]);if(response)return response;
+ const cloud=process.env.CLOUDINARY_CLOUD_NAME,key=process.env.CLOUDINARY_API_KEY,secret=process.env.CLOUDINARY_API_SECRET;
+ if(!cloud||!key||!secret)return NextResponse.json({error:"Penyimpanan foto belum dikonfigurasi. Tambahkan kredensial Cloudinary di environment."},{status:503});
+ try {const form=await req.formData();const file=form.get("file");const kind=String(form.get("kind")??"work-photo");if(!(file instanceof File))return NextResponse.json({error:"File gambar wajib dipilih."},{status:400});if(!file.type.startsWith("image/"))return NextResponse.json({error:"Hanya file gambar yang diperbolehkan."},{status:400});if(file.size>8*1024*1024)return NextResponse.json({error:"Ukuran gambar maksimal 8 MB."},{status:400});const timestamp=String(Math.floor(Date.now()/1000));const folder="kafagu-tech";const params={folder,timestamp};const sig=signature(params,secret);const payload=new FormData();payload.append("file",file);payload.append("api_key",key);payload.append("timestamp",timestamp);payload.append("folder",folder);payload.append("signature",sig);const result=await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/upload`,{method:"POST",body:payload,cache:"no-store"});const data=await result.json();if(!result.ok||!data.secure_url){console.error("Cloudinary upload failed",data);return NextResponse.json({error:"Gagal mengunggah gambar."},{status:502});}return NextResponse.json({url:data.secure_url,publicId:data.public_id,originalName:file.name,mimeType:file.type,size:file.size,kind,uploadedBy:session!.id});}catch{return NextResponse.json({error:"Gagal memproses unggahan gambar."},{status:500});}
+}
